@@ -1,0 +1,44 @@
+﻿@{
+    ViewData["Title"] = "Welcome to To-Do List App";
+}
+
+<div class="container mt-5 text-center">
+    <h1 class="display-4">@ViewData["Title"]</h1>
+    <p class="lead mt-3">Manage your daily tasks easily and effectively with To-Do List App.</p>
+
+    <div class="mt-5">
+        <a asp-controller="TasksView" asp-action="Index" class="btn btn-primary btn-lg">View My To-Do List</a>
+    </div>
+
+    <div class="mt-5">
+        <h3>Why use To-Do List App?</h3>
+        <p class="text-muted">With this app, you can organize your tasks, set deadlines, and track progress with ease!</p>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Create Tasks</h5>
+                    <p class="card-text">Add new tasks with details and set deadlines to keep everything on track.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Track Progress</h5>
+                    <p class="card-text">Mark tasks as complete and manage your workflow efficiently.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Stay Organized</h5>
+                    <p class="card-text">Keep everything organized in one place and focus on what matters most.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

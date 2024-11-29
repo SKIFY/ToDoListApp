@@ -1,0 +1,100 @@
+﻿@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="container mt-5">
+    <h1 class="display-4">@ViewData["Title"]</h1>
+    <p class="lead">Overview of your tasks and progress.</p>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <h4>Total Tasks</h4>
+            <p id="totalTasks" class="display-4">0</p>
+        </div>
+        <div class="col-md-6">
+            <h4>Completed Tasks</h4>
+            <p id="completedTasks" class="display-4">0</p>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <h4>High Priority Tasks</h4>
+            <p id="highPriorityTasks" class="display-4">0</p>
+        </div>
+        <div class="col-md-6">
+            <h4>Overdue Tasks</h4>
+            <p id="overdueTasks" class="display-4">0</p>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <h4>Task Completion Rate</h4>
+            <div style="width: 50%; margin: auto;">
+                <canvas id="completionChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    $(document).ready(function () {
+        function fetchDashboardData() {
+            $.ajax({
+                url: '/api/Tasks',
+                method: 'GET',
+                success: function (response) {
+                    console.log(response);  // Логируем ответ для отладки
+
+                    const totalTasks = response.length;
+                    const completedTasks = response.filter(task => task.isCompleted).length;
+                    const highPriorityTasks = response.filter(task => task.priority === 1).length;
+                    const overdueTasks = response.filter(task => !task.isCompleted && new Date(task.dueDate) < new Date()).length;
+
+                    $('#totalTasks').text(totalTasks);
+                    $('#completedTasks').text(completedTasks);
+                    $('#highPriorityTasks').text(highPriorityTasks);
+                    $('#overdueTasks').text(overdueTasks);
+
+                    const ctx = document.getElementById('completionChart').getContext('2d');
+                    const completionChart = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Completed', 'Incomplete', 'High Priority', 'Overdue'],
+                            datasets: [{
+                                data: [
+                                    completedTasks,
+                                    totalTasks - completedTasks,
+                                    highPriorityTasks,
+                                    overdueTasks
+                                ],
+                                backgroundColor: ['#007bff', '#dc3545', '#ffc107', '#6c757d']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top'
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Task Completion and Priority Overview'
+                                }
+                            }
+                        }
+                    });
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error fetching tasks:', xhr.responseText);
+                }
+            });
+        }
+
+        fetchDashboardData();
+    });
+</script>

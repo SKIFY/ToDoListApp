@@ -1,0 +1,60 @@
+﻿@{
+    ViewData["Title"] = "Settings";
+}
+
+<div class="container mt-5">
+    <h1 class="display-4">@ViewData["Title"]</h1>
+    <p class="lead">Manage your application settings and preferences.</p>
+
+    <div class="mt-4">
+        <h4>Theme</h4>
+        <p>Select your preferred theme:</p>
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="theme" id="lightTheme" value="light">
+            <label class="form-check-label" for="lightTheme">
+                Light Theme
+            </label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="theme" id="darkTheme" value="dark">
+            <label class="form-check-label" for="darkTheme">
+                Dark Theme
+            </label>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Сохранение выбранной темы в локальном хранилище
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        setTheme(savedTheme);
+
+        document.getElementById('lightTheme').addEventListener('change', function () {
+            setTheme('light');
+        });
+        document.getElementById('darkTheme').addEventListener('change', function () {
+            setTheme('dark');
+        });
+
+        function setTheme(theme) {
+            document.body.className = theme; // Эта строка уже меняет тему на светлую/темную
+            document.querySelector('nav').className = `navbar navbar-expand-sm navbar-toggleable-sm ${theme === 'dark' ? 'navbar-dark bg-dark' : 'navbar-light bg-white'} border-bottom box-shadow mb-3`;
+            localStorage.setItem('theme', theme);
+
+            // Устанавливаем состояние радио-кнопок
+            if (theme === 'dark') {
+                document.getElementById('darkTheme').checked = true;
+            } else {
+                document.getElementById('lightTheme').checked = true;
+            }
+        }
+
+        // Устанавливаем состояние радио-кнопок при загрузке страницы
+        if (savedTheme === 'dark') {
+            document.getElementById('darkTheme').checked = true;
+        } else {
+            document.getElementById('lightTheme').checked = true;
+        }
+    });
+</script>

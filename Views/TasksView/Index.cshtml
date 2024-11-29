@@ -1,0 +1,302 @@
+﻿@using System.Security.Claims
+
+@{
+    ViewData["Title"] = "To-Do List";
+}
+
+<h2 class="text-center mt-4">@ViewData["Title"]</h2>
+
+<div class="container mt-4">
+    <!-- Форма для додавання нового завдання -->
+    <form id="addTaskForm" class="mb-4">
+        <input type="hidden" id="taskId" />
+        <div class="form-group">
+            <label for="title">Title</label>
+            <input type="text" id="title" class="form-control" placeholder="Enter task title" required>
+        </div>
+        <div class="form-group">
+            <label for="description">Description</label>
+            <input type="text" id="description" class="form-control" placeholder="Enter task description">
+        </div>
+        <div class="form-group">
+            <label for="dueDate">Due Date</label>
+            <input type="date" id="dueDate" class="form-control">
+        </div>
+        <div class="form-group">
+            <label for="dueTime">Due Time</label>
+            <input type="time" id="dueTime" class="form-control">
+        </div>
+        <div class="form-group">
+            <label for="priority">Priority</label>
+            <select id="priority" class="form-select">
+                <option value="1">High</option>
+                <option value="2">Medium</option>
+                <option value="3">Low</option>
+            </select>
+        </div>
+        <input type="hidden" id="userId" value="@User.FindFirstValue(ClaimTypes.NameIdentifier)" />
+        <button type="submit" class="btn btn-primary mt-3">Add Task</button>
+        <button type="button" id="confirmEditButton" class="btn btn-warning mt-3" style="display:none;">Confirm Edit</button>
+        <button type="button" id="cancelEditButton" class="btn btn-secondary mt-3" style="display:none;">Cancel Edit</button>
+    </form>
+
+    <!-- Выпадающий список для выбора сортировки -->
+    <div class="form-group">
+        <label for="sortTasks">Sort Tasks By:</label>
+        <select id="sortTasks" class="form-control">
+            <option selected disabled>Sort Tasks By</option>
+            <option value="dueDate">Due Date</option>
+            <option value="status">Status</option>
+            <option value="title">Title</option>
+            <option value="priority">Priority</option>
+        </select>
+    </div>
+
+    <div class="form-check">
+        <input class="form-check-input" type="checkbox" value="" id="showCompleted">
+        <label class="form-check-label" for="showCompleted">
+            Show Completed
+        </label>
+    </div>
+
+    <!-- Список завдань -->
+    <h3>Tasks</h3>
+    <ul id="taskList" class="list-group">
+        <!-- Задачи будут загружаться сюда -->
+    </ul>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function () {
+        let tasks = [];
+
+        function loadTasks(tasksToLoad) {
+            $('#taskList').empty();
+            tasksToLoad.forEach(task => {
+                const dueDate = new Date(task.dueDate);
+                const now = new Date();
+                let taskClass = '';
+                let status = 'Not Completed';
+
+                if (task.isCompleted) {
+                    taskClass = 'completed-task';
+                    status = 'Completed';
+                } else if (now > dueDate) {
+                    taskClass = 'overdue-task';
+                    status = 'Overdue';
+                }
+
+                const completedAt = task.completedAt ? new Date(new Date(task.completedAt).getTime() + 2 * 60 * 60 * 1000).toLocaleDateString('en-GB') + ', ' + new Date(new Date(task.completedAt).getTime() + 2 * 60 * 60 * 1000).toLocaleTimeString('en-GB') : '';
+
+                $('#taskList').append(`
+                        <li class="list-group-item d-flex justify-content-between align-items-center ${taskClass}">
+                            <span>
+                                <strong>${task.title}</strong> - ${task.description} <br>
+                                Due: ${task.dueDate ? new Date(dueDate).toLocaleDateString('en-GB') + ', ' + new Date(dueDate).toLocaleTimeString('en-GB') : 'No date'}
+                                ${task.isCompleted ? '<br>Completed: ' + completedAt : ''}
+                                <br>Status: ${status}
+                                <br>Priority: ${['High', 'Medium', 'Low'][task.priority - 1]}
+                            </span>
+                            <div>
+                                ${task.isCompleted ? '' : `<button class="btn btn-sm btn-success" onclick="completeTask(${task.id})">Complete</button>`}
+                                <button class="btn btn-sm btn-warning" onclick="editTask(${task.id})">Edit</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteTask(${task.id})">Delete</button>
+                            </div>
+                        </li>
+                    `);
+            });
+        }
+
+        // Обработчик формы для добавления нового задания
+        $('#addTaskForm').submit(function (event) {
+            event.preventDefault();
+
+            const dueDate = $('#dueDate').val();
+            const dueTime = $('#dueTime').val();
+            const combinedDueDate = `${dueDate}T${dueTime}:00`;
+
+            const task = {
+                title: $('#title').val(),
+                description: $('#description').val(),
+                dueDate: combinedDueDate,
+                priority: $('#priority').val(),  // Добавляем приоритет
+                isCompleted: false,
+                userId: $('#userId').val()
+            };
+
+            $.ajax({
+                url: '/api/Tasks',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(task),
+                success: function () {
+                    $('#addTaskForm')[0].reset();
+                    fetchTasks();
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error:', xhr.responseText);
+                    alert('Error creating task: ' + xhr.responseText);
+                }
+            });
+        });
+
+        function fetchTasks() {
+            $.ajax({
+                url: '/api/Tasks',
+                method: 'GET',
+                success: function (response) {
+                    tasks = response;
+                    applyFilters();
+                }
+            });
+        }
+
+        // Функция для редактирования задания
+        window.editTask = function (id) {
+            const task = tasks.find(task => task.id === id);
+
+            if (!task) {
+                console.error('Task not found');
+                return;
+            }
+
+            // Заполняем форму редактирования текущими данными задачи
+            $('#title').val(task.title);
+            $('#description').val(task.description);
+            $('#dueDate').val(task.dueDate.split('T')[0]);
+            $('#dueTime').val(task.dueDate.split('T')[1].slice(0, 5));
+            $('#priority').val(task.priority); // Заполняем поле приоритета
+            $('#taskId').val(task.id); // Скрытое поле для сохранения ID задачи
+
+            // Показать кнопки подтверждения и отмены изменений
+            $('#confirmEditButton').show();
+            $('#cancelEditButton').show();
+        }
+
+        // Изменяем событие submit формы для подтверждения изменений
+        $('#confirmEditButton').off('click').on('click', function () {
+            const updatedTask = {
+                id: $('#taskId').val(),
+                title: $('#title').val(),
+                description: $('#description').val(),
+                dueDate: `${$('#dueDate').val()}T${$('#dueTime').val()}:00`,
+                priority: $('#priority').val(),  // Добавляем приоритет
+                isCompleted: false,
+                userId: $('#userId').val()
+            };
+
+            $.ajax({
+                url: `/api/Tasks/${updatedTask.id}`,
+                method: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify(updatedTask),
+                success: function () {
+                    $('#addTaskForm')[0].reset();
+                    $('#confirmEditButton').hide();
+                    $('#cancelEditButton').hide();
+                    fetchTasks();
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error:', xhr.responseText);
+                    alert('Error updating task: ' + xhr.responseText);
+                }
+            });
+        });
+
+        // Функция для отмены редактирования
+        $('#cancelEditButton').off('click').on('click', function () {
+            $('#addTaskForm')[0].reset();
+            $('#confirmEditButton').hide();
+            $('#cancelEditButton').hide();
+        });
+
+        // Функция для пометки задания как выполненного
+        window.completeTask = function (id) {
+            const task = tasks.find(task => task.id === id);
+
+            if (!task) {
+                console.error('Task not found');
+                return;
+            }
+
+            const updatedTask = {
+                id: task.id,
+                title: task.title,
+                description: task.description,
+                dueDate: task.dueDate,
+                dueTime: task.dueTime,
+                priority: task.priority,
+                isCompleted: true,
+                completedAt: new Date().toISOString(),
+                userId: task.userId
+            };
+
+            $.ajax({
+                url: `/api/Tasks/${id}`,
+                method: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify(updatedTask),
+                success: function () {
+                    fetchTasks();
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error:', xhr.responseText);
+                    alert('Error completing task: ' + xhr.responseText);
+                }
+            });
+        };
+
+        // Функция для удаления задания с проверкой
+        window.deleteTask = function (id) {
+            if (!confirm('Are you sure you want to delete this task?')) {
+                return;
+            }
+
+            $.ajax({
+                url: `/api/Tasks/${id}`,
+                method: 'DELETE',
+                success: function () {
+                    $('#addTaskForm')[0].reset();
+                    $('#confirmEditButton').hide();
+                    $('#cancelEditButton').hide();
+                    fetchTasks();
+                }
+            });
+        };
+
+                        // Функция для применения фильтров
+                        function applyFilters() {
+                const showCompleted = $('#showCompleted').is(':checked');
+                let filteredTasks = tasks.filter(task => showCompleted || !task.isCompleted);
+                        const sortBy = $('#sortTasks').val();
+                        sortTasks(sortBy, filteredTasks);
+            }
+
+                        // Функция для сортировки задач
+                        function sortTasks(by, tasksToSort) {
+                if (by === 'dueDate') {
+                            tasksToSort.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+                } else if (by === 'status') {
+                            tasksToSort.sort((a, b) => a.isCompleted - b.isCompleted);
+                } else if (by === 'title') {
+                            tasksToSort.sort((a, b) => a.title.localeCompare(b.title));
+                } else if (by === 'priority') {
+                            tasksToSort.sort((a, b) => a.priority - b.priority);
+                }
+                        loadTasks(tasksToSort);
+            }
+
+                        // Обработчик для выпадающего списка сортировки
+                        $('#sortTasks').change(function () {
+                            applyFilters();
+            });
+
+                        // Обработчик для фильтра завершенных задач
+                        $('#showCompleted').change(function () {
+                            applyFilters();
+            });
+
+                        fetchTasks();
+        });
+</script>

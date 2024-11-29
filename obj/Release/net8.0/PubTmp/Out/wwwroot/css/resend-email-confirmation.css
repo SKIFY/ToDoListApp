@@ -1,0 +1,41 @@
+﻿/* Центрирование формы отправки повторного подтверждения email */
+.row.justify-content-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh; /* Выравнивание по вертикали */
+}
+
+/* Формы внутри колонок */
+.form-floating {
+    margin-bottom: 15px;
+}
+
+/* Для секции с кнопками и ссылками */
+form div p {
+    text-align: center;
+}
+
+/* Кнопка отправки повторного email */
+button[type="submit"] {
+    width: 100%; /* Расширить кнопку на всю ширину */
+}
+
+.btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+    .btn-primary:hover {
+        background-color: #0056b3;
+        border-color: #004085;
+    }
+
+/* Заголовки */
+h1, h2 {
+    text-align: center; /* Центрирование заголовков */
+}
+
+hr {
+    margin: 20px 0;
+}
