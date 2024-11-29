@@ -298,3 +298,4 @@ C:\Users\SKIF\source\repos\ToDoListApp\obj\Debug\net8.0\refint\ToDoListApp.dll
 C:\Users\SKIF\source\repos\ToDoListApp\obj\Debug\net8.0\ToDoListApp.pdb
 C:\Users\SKIF\source\repos\ToDoListApp\obj\Debug\net8.0\ToDoListApp.genruntimeconfig.cache
 C:\Users\SKIF\source\repos\ToDoListApp\obj\Debug\net8.0\ref\ToDoListApp.dll
+C:\Users\SKIF\source\repos\ToDoListApp\obj\Debug\net8.0\ToDoListApp.sourcelink.json
